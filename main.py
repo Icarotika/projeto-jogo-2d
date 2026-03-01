@@ -12,7 +12,6 @@ from summons import ExplosiveCard, MageSummon, WarriorSummon
 
 
 def build_level() -> list[pygame.Rect]:
-    """Cria chão e plataformas simples para movimentação."""
     solids = [
         pygame.Rect(0, settings.GROUND_Y, settings.WORLD_WIDTH, settings.SCREEN_HEIGHT - settings.GROUND_Y),
         pygame.Rect(280, 390, 160, 24),
@@ -65,9 +64,7 @@ def draw_world(
     for card in cards:
         card.draw(screen, camera_x)
 
-    help_text = (
-        "A/D mover | ESPAÇO pular | J mago | K guerreiro | L carta explosiva"
-    )
+    help_text = "A/D mover | ESPAÇO pular | J mago | K guerreiro | L carta explosiva"
     ui_surface = ui_font.render(help_text, True, settings.WHITE)
     screen.blit(ui_surface, (16, 14))
 
@@ -101,36 +98,40 @@ def main() -> None:
                 elif event.key == pygame.K_j:
                     mage_summons.append(
                         MageSummon(
-                            player.rect.centerx + (player.facing * 20),
+                            player.rect.centerx + (20 if player.facing == "right" else -20),
                             player.rect.bottom - 46,
                             player.facing,
                         )
                     )
                 elif event.key == pygame.K_k:
                     warrior_summons.append(
-                        WarriorSummon(player.rect.centerx + (player.facing * 22), player.rect.bottom - 50)
+                        WarriorSummon(
+                            player.rect.centerx + (30 if player.facing == "right" else -30),
+                            player.rect.bottom - 52,
+                            player.facing,
+                        )
                     )
                 elif event.key == pygame.K_l:
-                    card_x = player.rect.centerx + (player.facing * 28)
+                    card_x = player.rect.centerx + (25 if player.facing == "right" else -25)
                     card_y = player.rect.bottom - 10
                     cards.append(ExplosiveCard(card_x, card_y))
 
         keys = pygame.key.get_pressed()
-        player.update(keys, solids)
+        player.update(dt, keys, solids)
 
         for enemy in enemies:
-            enemy.update(solids)
+            enemy.update(dt, solids)
 
         for summon in mage_summons:
-            summon.update(dt, solids, enemies)
+            summon.update(dt, enemies)
 
         for summon in warrior_summons:
-            summon.update(dt, solids, enemies)
+            summon.update(dt, enemies)
 
         for card in cards:
             card.update(dt, enemies)
 
-        mage_summons = [s for s in mage_summons if not s.expired]
+        mage_summons = [s for s in mage_summons if not s.expired or s.projectile.alive]
         warrior_summons = [s for s in warrior_summons if not s.expired]
         cards = [c for c in cards if not c.expired]
         enemies = [e for e in enemies if e.alive]
@@ -147,7 +148,6 @@ def main() -> None:
             cards,
             ui_font,
         )
-
         pygame.display.flip()
 
     pygame.quit()
